@@ -32,12 +32,16 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Strings;
 import io.swagger.v3.oas.integration.SwaggerConfiguration;
+import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
+import io.swagger.v3.oas.models.security.SecurityScheme;
 import jakarta.validation.constraints.NotEmpty;
-import java.util.Arrays;
+
+import java.util.*;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -87,6 +91,10 @@ public class SwaggerBundleConfiguration implements Cloneable {
   private boolean enabled = true;
   private boolean includeSwaggerResource = true;
   private boolean readAllResources = true;
+
+  @Nullable private Map<String, SecurityScheme> securitySchemes;
+
+  @Nullable private List<SecurityRequirement> securityRequirements;
 
   /**
    * For most of the scenarios this property is not needed.
@@ -322,6 +330,28 @@ public class SwaggerBundleConfiguration implements Cloneable {
     this.readAllResources = include;
   }
 
+  @Nullable
+  @JsonProperty("security")
+  public List<SecurityRequirement> getSecurityRequirements() {
+    return securityRequirements;
+  }
+
+  @JsonProperty("security")
+  public void setSecurityRequirements(@Nullable List<SecurityRequirement> securityRequirements) {
+    this.securityRequirements = securityRequirements;
+  }
+
+  @Nullable
+  @JsonProperty
+  public Map<String, SecurityScheme> getSecuritySchemes() {
+    return securitySchemes;
+  }
+
+  @JsonProperty
+  public void setSecuritySchemes(@Nullable Map<String, SecurityScheme> securitySchemes) {
+    this.securitySchemes = securitySchemes;
+  }
+
   @JsonIgnore
   public SwaggerConfiguration build() {
     if (Strings.isNullOrEmpty(resourcePackage)) {
@@ -342,7 +372,13 @@ public class SwaggerBundleConfiguration implements Cloneable {
 
     final String[] exclusions = {SwaggerResource.PATH};
     return new SwaggerConfiguration()
-        .openAPI(oas.info(info))
+        .openAPI(oas
+            .info(info)
+            .security(securityRequirements)
+            .components(new Components()
+                .securitySchemes(securitySchemes)
+            )
+        )
         .prettyPrint(prettyPrint)
         .readAllResources(readAllResources)
         .ignoredRoutes(Arrays.stream(exclusions).collect(Collectors.toSet()))
